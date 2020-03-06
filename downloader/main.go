@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"storj.io/common/sync2"
+	"storj.io/common/errs2"
 	"storj.io/uplink"
 )
 
@@ -57,17 +57,24 @@ func main() {
 		keys = append(keys, item.Key)
 	}
 
-	limiter := sync2.NewLimiter(*workersArg)
+	group := new(errs2.Group)
 	for i := 0; i < *workersArg; i++ {
-		limiter.Go(ctx, func() {
+		group.Go(func() error {
 			err := run(ctx, project, bucket, keys)
 			if err != nil {
 				log.Fatalf("%v\n", err)
+				return err
 			}
+			return nil
 		})
 	}
 	log.Println("Waiting...")
-	limiter.Wait()
+	errs := group.Wait()
+	if errs != nil {
+		for _, err := range errs {
+			log.Printf("%v", err)
+		}
+	}
 	log.Println("Done!")
 }
 
