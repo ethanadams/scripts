@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"io/ioutil"
 	"log"
 
@@ -80,7 +81,7 @@ func run(ctx context.Context, project *uplink.Project, bucket *uplink.Bucket, ke
 
 		defer reader.Close()
 		log.Printf("Downloading %v%v\n", bucket.Name, k)
-		if _, err := ioutil.ReadAll(reader); err != nil {
+		if _, err := io.Copy(ioutil.Discard, reader); err != nil {
 			log.Fatalf("%v\n", err)
 			return err
 		}
