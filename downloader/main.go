@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"io"
 	"io/ioutil"
 	"log"
 
@@ -19,12 +18,13 @@ func main() {
 	pathArg := flag.String("p", "", "Folder path")
 	workersArg := flag.Int("w", 1, "Number of workers")
 	flag.Parse()
-
-	log.Printf("-a %v, -b %v, -p %v, -w %v\n",
-		*accessArg,
-		*bucketArg,
-		*pathArg,
-		*workersArg)
+	/*
+		log.Printf("-a %v, -b %v, -p %v, -w %v\n",
+			*accessArg,
+			*bucketArg,
+			*pathArg,
+			*workersArg)
+	*/
 	access, err := uplink.ParseAccess(*accessArg)
 	if err != nil {
 		log.Fatalf("%v\n", err)
@@ -57,33 +57,30 @@ func main() {
 	}
 
 	limiter := sync2.NewLimiter(*workersArg)
-	go func() {
-		for i := 0; i < *workersArg; i++ {
-			limiter.Go(ctx, func() {
-				err := run(ctx, project, bucket, keys)
-				if err != nil {
-					log.Fatalf("%v\n", err)
-				}
-			})
-		}
-	}()
+	for i := 0; i < *workersArg; i++ {
+		limiter.Go(ctx, func() {
+			err := run(ctx, project, bucket, keys)
+			if err != nil {
+				log.Fatalf("%v\n", err)
+			}
+		})
+	}
 	log.Println("Waiting...")
 	limiter.Wait()
 	log.Println("Done!")
 }
 
 func run(ctx context.Context, project *uplink.Project, bucket *uplink.Bucket, keys []string) error {
-	log.Printf("Running %v\n", bucket.Name)
+	log.Printf("Running\n")
 	for _, k := range keys {
-		log.Printf("Downloading %v%v\n", bucket.Name, k)
 		reader, err := project.DownloadObject(ctx, bucket.Name, k, nil)
 		if err != nil {
 			return err
 		}
 
 		defer reader.Close()
-
-		if _, err := io.Copy(ioutil.Discard, reader); err != nil {
+		log.Printf("Downloading %v%v\n", bucket.Name, k)
+		if _, err := ioutil.ReadAll(reader); err != nil {
 			log.Fatalf("%v\n", err)
 			return err
 		}
