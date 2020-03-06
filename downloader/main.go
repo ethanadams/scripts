@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,7 +20,11 @@ func main() {
 	workersArg := flag.Int("w", 1, "Number of workers")
 	flag.Parse()
 
-	fmt.Printf("WORKERS %v\n", *workersArg)
+	log.Printf("-a %v, -b %v, -p %v, -w %v\n",
+		*accessArg,
+		*bucketArg,
+		*pathArg,
+		*workersArg)
 	access, err := uplink.ParseAccess(*accessArg)
 	if err != nil {
 		log.Fatalf("%v\n", err)
