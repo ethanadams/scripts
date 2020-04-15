@@ -55,6 +55,7 @@ func main() {
 	keys := []string{}
 	for iter.Next() {
 		item := iter.Item()
+		log.Printf("Adding key\n")
 		keys = append(keys, item.Key)
 	}
 	log.Printf("Iteration complete\n")
