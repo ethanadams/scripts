@@ -47,7 +47,7 @@ func main() {
 
 	listOptions := uplink.ListObjectsOptions{
 		Prefix:    *pathArg,
-		Recursive: true,
+		Recursive: false,
 	}
 	log.Printf("Listing objects\n")
 	iter := project.ListObjects(ctx, bucket.Name, &listOptions)
