@@ -47,7 +47,7 @@ func main() {
 
 	listOptions := uplink.ListObjectsOptions{
 		Prefix:    *pathArg,
-		Recursive: false,
+		Recursive: true,
 	}
 	log.Printf("Listing objects\n")
 	iter := project.ListObjects(ctx, bucket.Name, &listOptions)
@@ -55,8 +55,18 @@ func main() {
 	keys := []string{}
 	for iter.Next() {
 		item := iter.Item()
-		log.Printf("Adding key\n")
+
+		if item.IsPrefix {
+			log.Printf("Skipping prefix %v\n", item.Key)
+			continue
+		}
+
+		//log.Printf("Adding key %v\n", item.Key)
 		keys = append(keys, item.Key)
+	}
+	if iter.Err() != nil {
+		log.Fatalf("Iteration error %v\n", iter.Err())
+		return
 	}
 	log.Printf("Iteration complete\n")
 
