@@ -101,12 +101,13 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 		}
 
 		defer reader.Close()
-		log.Printf("[%v] Downloading %v%v\n", worker, bucket.Name, k)
-		if r, err := io.Copy(ioutil.Discard, reader); err != nil {
-			read += r
+		//log.Printf("[%v] Downloading %v%v\n", worker, bucket.Name, k)
+		var r int64
+		if r, err = io.Copy(ioutil.Discard, reader); err != nil {
 			log.Fatalf("%v\n", err)
 			return err
 		}
+		read += r
 		if i%1000 == 0 {
 			log.Printf("[%v] Downloaded %v bytes", worker, read)
 		}
