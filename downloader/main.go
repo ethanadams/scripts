@@ -51,12 +51,13 @@ func main() {
 	}
 	log.Printf("Listing objects\n")
 	iter := project.ListObjects(ctx, bucket.Name, &listOptions)
-	log.Printf("Done listing objects\n")
+	log.Printf("Received list\n")
 	keys := []string{}
 	for iter.Next() {
 		item := iter.Item()
 		keys = append(keys, item.Key)
 	}
+	log.Printf("Iteration complete\n")
 
 	group := new(errs2.Group)
 	for i := 0; i < *workersArg; i++ {
