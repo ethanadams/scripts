@@ -72,8 +72,9 @@ func main() {
 
 	group := new(errs2.Group)
 	for i := 0; i < *workersArg; i++ {
+		worker := i
 		group.Go(func() error {
-			err := run(ctx, i, project, bucket, keys)
+			err := run(ctx, worker, project, bucket, keys)
 			if err != nil {
 				log.Fatalf("%v\n", err)
 				return err
