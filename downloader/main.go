@@ -49,8 +49,9 @@ func main() {
 		Prefix:    *pathArg,
 		Recursive: true,
 	}
+	log.Printf("Listing objects\n")
 	iter := project.ListObjects(ctx, bucket.Name, &listOptions)
-
+	log.Printf("Done listing objects\n")
 	keys := []string{}
 	for iter.Next() {
 		item := iter.Item()
@@ -60,7 +61,7 @@ func main() {
 	group := new(errs2.Group)
 	for i := 0; i < *workersArg; i++ {
 		group.Go(func() error {
-			err := run(ctx, project, bucket, keys)
+			err := run(ctx, i, project, bucket, keys)
 			if err != nil {
 				log.Fatalf("%v\n", err)
 				return err
@@ -78,19 +79,24 @@ func main() {
 	log.Println("Done!")
 }
 
-func run(ctx context.Context, project *uplink.Project, bucket *uplink.Bucket, keys []string) error {
-	log.Printf("Running\n")
-	for _, k := range keys {
+func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplink.Bucket, keys []string) error {
+	log.Printf("[%v] Running\n", worker)
+	var read int64
+	for i, k := range keys {
 		reader, err := project.DownloadObject(ctx, bucket.Name, k, nil)
 		if err != nil {
 			return err
 		}
 
 		defer reader.Close()
-		log.Printf("Downloading %v%v\n", bucket.Name, k)
-		if _, err := io.Copy(ioutil.Discard, reader); err != nil {
+		log.Printf("[%v] Downloading %v%v\n", worker, bucket.Name, k)
+		if r, err := io.Copy(ioutil.Discard, reader); err != nil {
+			read += r
 			log.Fatalf("%v\n", err)
 			return err
+		}
+		if i%1000 == 0 {
+			log.Printf("[%v] Downloaded %v bytes", worker, read)
 		}
 	}
 	return nil
