@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/zeebo/errs"
 	"storj.io/common/errs2"
 	"storj.io/uplink"
 )
@@ -101,15 +102,20 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 			return err
 		}
 
-		defer reader.Close()
 		//log.Printf("[%v] Downloading %v%v\n", worker, bucket.Name, k)
 		var r int64
 		if r, err = io.Copy(ioutil.Discard, reader); err != nil {
 			log.Fatalf("%v\n", err)
-			return err
+
+			return errs.Combine(err, reader.Close())
 		}
+		err = reader.Close()
+		if err != nil {
+			log.Fatalf("%v\n", err)
+		}
+
 		read += r
-		if i%1000 == 0 {
+		if i%10 == 0 {
 			log.Printf("[%v] Downloaded %v bytes", worker, read)
 		}
 	}
