@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeebo/errs"
 	"storj.io/common/errs2"
+	"storj.io/common/memory"
 	"storj.io/uplink"
 )
 
@@ -164,7 +165,7 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 
 		read += r
 		if i%10 == 0 {
-			log.Printf("[%+v] Downloaded %+v bytes", worker, read)
+			log.Printf("[%+v] Downloaded %v", worker, memory.Size(read))
 		}
 	}
 	return nil
