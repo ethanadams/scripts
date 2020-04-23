@@ -7,12 +7,25 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
-	"github.com/zeebo/errs"
+	monkit "github.com/spacemonkeygo/monkit/v3"
+	"github.com/spacemonkeygo/monkit/v3/environment"
+	"github.com/spacemonkeygo/monkit/v3/present"
+	"github.com/zeebo/admission/v3/admproto"
+	"go.uber.org/zap"
 	"storj.io/common/errs2"
 	"storj.io/common/memory"
+	"storj.io/common/telemetry"
+	"storj.io/private/version"
 	"storj.io/uplink"
+)
+
+var (
+	mon = monkit.Package()
 )
 
 func main() {
@@ -23,6 +36,7 @@ func main() {
 	pathArg := flag.String("p", "", "Folder path")
 	workersArg := flag.Int("w", 1, "Number of workers")
 	forever := flag.Bool("f", false, "Loop forever")
+	metrics := flag.Bool("m", false, "Send metrics")
 	flag.Parse()
 	/*
 		log.Printf("-a %+v, -b %+v, -p %+v, -w %+v\n",
@@ -31,6 +45,16 @@ func main() {
 			*pathArg,
 			*workersArg)
 	*/
+	go http.ListenAndServe(":9000", present.HTTP(monkit.Default))
+	if *metrics {
+		_, err := initMetrics(ctx)
+		if err != nil {
+			log.Fatalf("%+v\n", err)
+			return
+		}
+		log.Println("Metrics sender started")
+	}
+
 	access, err := uplink.ParseAccess(*accessArg)
 	if err != nil {
 		log.Fatalf("%+v\n", err)
@@ -156,17 +180,49 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 		if r, err = io.Copy(ioutil.Discard, reader); err != nil {
 			log.Fatalf("%+v\n", err)
 
-			return errs.Combine(err, reader.Close())
+			//return errs.Combine(err, reader.Close())
 		}
+
 		err = reader.Close()
 		if err != nil {
 			log.Fatalf("%+v\n", err)
 		}
 
 		read += r
+		mon.IntVal("bytes_downloaded").Observe(read)
 		if i%10 == 0 {
 			log.Printf("[%+v] Downloaded %v", worker, memory.Size(read))
 		}
 	}
 	return nil
+}
+
+func initMetrics(ctx context.Context) (r *monkit.Registry, err error) {
+	r = monkit.Default
+
+	environment.Register(r)
+	r.ScopeNamed("env").Chain(monkit.StatSourceFunc(version.Build.Stats))
+
+	log, _ := zap.NewDevelopment()
+	var metricsID string
+	hostname, err := os.Hostname()
+	if err != nil {
+		return r, nil
+	}
+	metricsID = strings.ReplaceAll(hostname, ".", "_")
+
+	c, err := telemetry.NewClient(log,
+		"collectora.storj.io:9000",
+		telemetry.ClientOpts{
+			Application:   "scale-n-effic-downloader",
+			Instance:      metricsID,
+			Registry:      r,
+			FloatEncoding: admproto.Float32Encoding,
+		})
+	if err != nil {
+		return r, err
+	}
+	go c.Run(ctx)
+
+	return r, nil
 }
