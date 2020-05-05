@@ -181,7 +181,7 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 		if delete {
 			_, err := project.DeleteObject(ctx, bucket.Name, k)
 			if err != nil {
-				log.Fatalf("%+v\n", err)
+				log.Printf("%+v\n", err)
 			}
 			deleted++
 			mon.IntVal("bytes_deleted").Observe(deleted)
@@ -199,14 +199,14 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 		//log.Printf("[%+v] Downloading %+v%+v\n", worker, bucket.Name, k)
 		var r int64
 		if r, err = io.Copy(ioutil.Discard, reader); err != nil {
-			log.Fatalf("%+v\n", err)
+			log.Printf("%+v\n", err)
 
 			//return errs.Combine(err, reader.Close())
 		}
 
 		err = reader.Close()
 		if err != nil {
-			log.Fatalf("%+v\n", err)
+			log.Printf("%+v\n", err)
 		}
 
 		read += r
