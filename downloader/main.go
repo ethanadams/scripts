@@ -37,6 +37,13 @@ func main() {
 	workersArg := flag.Int("w", 1, "Number of workers")
 	forever := flag.Bool("f", false, "Loop forever")
 	metrics := flag.Bool("m", false, "Send metrics")
+	delete := flag.Bool("delete", false, "Send metrics")
+
+	action := "download"
+	if *delete {
+		action = "delete"
+	}
+
 	flag.Parse()
 	/*
 		log.Printf("-a %+v, -b %+v, -p %+v, -w %+v\n",
@@ -74,14 +81,14 @@ func main() {
 		return
 	}
 
-	log.Printf("Starting downloads: bucket=%+v, path=%+v\n", bucket.Name, path)
+	log.Printf("Starting %ss: bucket=%+v, path=%+v\n", action, bucket.Name, path)
 
 	for {
 		group := new(errs2.Group)
 		for i := 0; i < *workersArg; i++ {
 			worker := i
 			group.Go(func() error {
-				err := run(ctx, worker, project, bucket, keys)
+				err := run(ctx, worker, project, bucket, keys, *delete)
 				if err != nil {
 					log.Fatalf("%+v\n", err)
 					return err
@@ -166,10 +173,24 @@ func getKeys(ctx context.Context, project *uplink.Project, bucketArg string, pat
 	return bucket, path, keys, nil
 }
 
-func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplink.Bucket, keys []string) error {
+func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplink.Bucket, keys []string, delete bool) error {
 	log.Printf("[%+v] Running\n", worker)
 	var read int64
+	var deleted int64
 	for i, k := range keys {
+		if delete {
+			_, err := project.DeleteObject(ctx, bucket.Name, k)
+			if err != nil {
+				log.Fatalf("%+v\n", err)
+			}
+			deleted++
+			mon.IntVal("bytes_deleted").Observe(deleted)
+			if i%10 == 0 {
+				log.Printf("[%+v] Deleted %v", worker, deleted)
+			}
+			continue
+		}
+
 		reader, err := project.DownloadObject(ctx, bucket.Name, k, nil)
 		if err != nil {
 			return err
