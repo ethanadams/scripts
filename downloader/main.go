@@ -88,7 +88,7 @@ func main() {
 
 				log.Printf("Starting %ss: bucket=%+v, path=%+v\n", action, bucket.Name, path)
 
-				err := run(ctx, worker, project, bucket, keys, *delete)
+				err = run(ctx, worker, project, bucket, keys, *delete)
 				if err != nil {
 					log.Fatalf("%+v\n", err)
 					return err
