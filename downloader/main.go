@@ -186,7 +186,8 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 			}
 			read += o.System.ContentLength
 			deleted++
-			mon.IntVal("bytes_deleted").Observe(deleted)
+			mon.IntVal("bytes_deleted").Observe(read)
+			mon.IntVal("objects_deleted").Observe(read)
 			if i%10 == 0 {
 				log.Printf("[%+v] Deleted %v - total bytes %v", worker, deleted, read)
 			}
