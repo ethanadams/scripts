@@ -75,19 +75,19 @@ func main() {
 	}
 	defer project.Close()
 
-	bucket, path, keys, err := getKeys(ctx, project, *bucketArg, *pathArg)
-	if err != nil {
-		log.Fatalf("%+v\n", err)
-		return
-	}
-
-	log.Printf("Starting %ss: bucket=%+v, path=%+v\n", action, bucket.Name, path)
-
 	for {
 		group := new(errs2.Group)
 		for i := 0; i < *workersArg; i++ {
 			worker := i
 			group.Go(func() error {
+				bucket, path, keys, err := getKeys(ctx, project, *bucketArg, *pathArg)
+				if err != nil {
+					log.Fatalf("%+v\n", err)
+					return err
+				}
+
+				log.Printf("Starting %ss: bucket=%+v, path=%+v\n", action, bucket.Name, path)
+
 				err := run(ctx, worker, project, bucket, keys, *delete)
 				if err != nil {
 					log.Fatalf("%+v\n", err)
