@@ -52,7 +52,8 @@ func main() {
 			*pathArg,
 			*workersArg)
 	*/
-	go http.ListenAndServe(":9000", present.HTTP(monkit.Default))
+	http.Handle("/metrics", present.HTTP(monkit.Default))
+	go http.ListenAndServe(":9000", nil)
 	if *metrics {
 		_, err := initMetrics(ctx)
 		if err != nil {
