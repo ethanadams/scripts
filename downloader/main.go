@@ -189,6 +189,7 @@ func run(ctx context.Context, worker int, project *uplink.Project, bucket *uplin
 			if i%10 == 0 {
 				log.Printf("[%+v] Deleted %v", worker, deleted)
 			}
+			continue
 		}
 
 		reader, err := project.DownloadObject(ctx, bucket.Name, k, nil)
